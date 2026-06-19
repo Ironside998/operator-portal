@@ -1,11 +1,6 @@
 // context/AuthContext.jsx
-// Provides authentication state globally across the operator dashboard.
-// Stores JWT token and operator username after login.
-// Replace the mock check in login() with an axios.post() call
-// when the real backend is ready.
-
 import React, { createContext, useContext, useState } from "react";
-import { mockOperator } from "../mock/mockData";
+import api from "../api/axiosInstance";
 
 const AuthContext = createContext(null);
 
@@ -15,25 +10,23 @@ export function AuthProvider({ children }) {
     return stored ? JSON.parse(stored) : null;
   });
 
-  const login = (username, password) => {
-    // --- MOCK CHECK ---
-    // Replace with:
-    // const res = await axios.post("/api/auth/operator/login", { username, password });
-    // const { token, username } = res.data;
-    if (
-      username === mockOperator.username &&
-      password === mockOperator.password
-    ) {
-      const session = {
-        token: mockOperator.token,
-        username: mockOperator.username,
-        role: mockOperator.role,
-      };
+  const login = async (username, password) => {
+    try {
+      const res = await api.post("/auth/login", { username, password });
+      const { token, role, username: uname } = res.data;
+
+      if (role !== "operator") {
+        return { success: false, error: "This dashboard is for operators only." };
+      }
+
+      const session = { token, username: uname, role };
       localStorage.setItem("operator_auth", JSON.stringify(session));
       setAuth(session);
       return { success: true };
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Invalid username or password.";
+      return { success: false, error: msg };
     }
-    return { success: false, error: "Invalid username or password." };
   };
 
   const logout = () => {

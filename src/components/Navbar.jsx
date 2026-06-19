@@ -1,12 +1,8 @@
 // components/Navbar.jsx
-// Persistent top navigation bar for the operator dashboard.
-// Shows all subsystem page links, an alarm notification badge,
-// the logged-in operator username, and a logout button.
-
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { mockAlarms } from "../mock/mockData";
+import api from "../api/axiosInstance";
 
 const navLinks = [
   { to: "/overview",  label: "Overview"  },
@@ -21,9 +17,22 @@ const navLinks = [
 export default function Navbar() {
   const { auth, logout } = useAuth();
   const navigate = useNavigate();
+  const [activeAlarmCount, setActiveAlarmCount] = useState(0);
 
-  // Count unacknowledged alarms
-  const activeAlarmCount = mockAlarms.filter((a) => !a.acknowledged).length;
+  useEffect(() => {
+    const fetchAlarmCount = async () => {
+      try {
+        const res = await api.get("/operator/alarms?acknowledged=false");
+        setActiveAlarmCount(res.data.data.length);
+      } catch (err) {
+        console.error("Failed to fetch alarm count:", err);
+      }
+    };
+
+    fetchAlarmCount();
+    const interval = setInterval(fetchAlarmCount, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -33,13 +42,11 @@ export default function Navbar() {
   return (
     <nav style={styles.nav}>
       <div style={styles.inner}>
-        {/* Brand */}
         <div style={styles.brand}>
           <span style={styles.brandIcon}>🔧</span>
           <span style={styles.brandText}>OperatorDash</span>
         </div>
 
-        {/* Nav links */}
         <div style={styles.links}>
           {navLinks.map((link) => (
             <NavLink
@@ -54,7 +61,6 @@ export default function Navbar() {
             </NavLink>
           ))}
 
-          {/* Alarms link with badge */}
           <NavLink
             to="/alarms"
             style={({ isActive }) => ({
@@ -70,12 +76,9 @@ export default function Navbar() {
           </NavLink>
         </div>
 
-        {/* Right side */}
         <div style={styles.right}>
           <span style={styles.username}>{auth?.username ?? "operator"}</span>
-          <button style={styles.logoutBtn} onClick={handleLogout}>
-            Logout
-          </button>
+          <button style={styles.logoutBtn} onClick={handleLogout}>Logout</button>
         </div>
       </div>
     </nav>
@@ -83,90 +86,16 @@ export default function Navbar() {
 }
 
 const styles = {
-  nav: {
-    backgroundColor: "#111520",
-    borderBottom: "1px solid #1e2a45",
-    position: "sticky",
-    top: 0,
-    zIndex: 100,
-  },
-  inner: {
-    maxWidth: 1200,
-    margin: "0 auto",
-    padding: "0 20px",
-    height: 54,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
-  brand: {
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    flexShrink: 0,
-  },
-  brandIcon: {
-    fontSize: 18,
-  },
-  brandText: {
-    fontWeight: 700,
-    fontSize: 15,
-    color: "#e2e8f0",
-    letterSpacing: "-0.02em",
-    whiteSpace: "nowrap",
-  },
-  links: {
-    display: "flex",
-    alignItems: "center",
-    gap: 2,
-    overflowX: "auto",
-    flexShrink: 1,
-  },
-  link: {
-    padding: "5px 11px",
-    borderRadius: 6,
-    fontSize: 13,
-    fontWeight: 500,
-    color: "#94a3b8",
-    whiteSpace: "nowrap",
-    transition: "color 0.15s, background 0.15s",
-  },
-  linkActive: {
-    color: "#e2e8f0",
-    backgroundColor: "#1c2238",
-  },
-  badge: {
-    position: "absolute",
-    top: -4,
-    right: -2,
-    backgroundColor: "#ef4444",
-    color: "#fff",
-    fontSize: 10,
-    fontWeight: 700,
-    borderRadius: 10,
-    padding: "1px 5px",
-    lineHeight: 1.4,
-  },
-  right: {
-    display: "flex",
-    alignItems: "center",
-    gap: 10,
-    flexShrink: 0,
-  },
-  username: {
-    fontSize: 12,
-    color: "#94a3b8",
-    whiteSpace: "nowrap",
-  },
-  logoutBtn: {
-    background: "transparent",
-    border: "1px solid #1e2a45",
-    borderRadius: 6,
-    color: "#94a3b8",
-    fontSize: 12,
-    padding: "4px 11px",
-    cursor: "pointer",
-    whiteSpace: "nowrap",
-  },
+  nav: { backgroundColor: "#111520", borderBottom: "1px solid #1e2a45", position: "sticky", top: 0, zIndex: 100 },
+  inner: { maxWidth: 1200, margin: "0 auto", padding: "0 20px", height: 54, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  brand: { display: "flex", alignItems: "center", gap: 8, flexShrink: 0 },
+  brandIcon: { fontSize: 18 },
+  brandText: { fontWeight: 700, fontSize: 15, color: "#e2e8f0", letterSpacing: "-0.02em", whiteSpace: "nowrap" },
+  links: { display: "flex", alignItems: "center", gap: 2, overflowX: "auto", flexShrink: 1 },
+  link: { padding: "5px 11px", borderRadius: 6, fontSize: 13, fontWeight: 500, color: "#94a3b8", whiteSpace: "nowrap", transition: "color 0.15s, background 0.15s" },
+  linkActive: { color: "#e2e8f0", backgroundColor: "#1c2238" },
+  badge: { position: "absolute", top: -4, right: -2, backgroundColor: "#ef4444", color: "#fff", fontSize: 10, fontWeight: 700, borderRadius: 10, padding: "1px 5px", lineHeight: 1.4 },
+  right: { display: "flex", alignItems: "center", gap: 10, flexShrink: 0 },
+  username: { fontSize: 12, color: "#94a3b8", whiteSpace: "nowrap" },
+  logoutBtn: { background: "transparent", border: "1px solid #1e2a45", borderRadius: 6, color: "#94a3b8", fontSize: 12, padding: "4px 11px", cursor: "pointer", whiteSpace: "nowrap" },
 };

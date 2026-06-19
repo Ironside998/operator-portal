@@ -33,7 +33,7 @@ export default function Login() {
     return newErrors;
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setServerError("");
 
@@ -44,7 +44,7 @@ export default function Login() {
     }
 
     setErrors({});
-    const result = login(username, password);
+    const result = await login(username, password);
     if (result.success) {
       navigate("/overview");
     } else {
